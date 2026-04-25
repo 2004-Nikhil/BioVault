@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.23"
 }
 
 android {
@@ -55,4 +56,23 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
+
+    // Lifecycle (needed for AutoLock via ProcessLifecycleOwner)
+    implementation("androidx.lifecycle:lifecycle-process:2.8.1")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.1")
+
+    // Navigation
+    implementation("androidx.navigation:navigation-compose:2.7.7")
+
+    // Security (EncryptedSharedPreferences + Android Keystore)
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
+    // Biometric
+    implementation("androidx.biometric:biometric:1.1.0")
+
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+
+    // Serialization (for storing credential objects as JSON)
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 }
