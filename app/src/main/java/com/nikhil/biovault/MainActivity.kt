@@ -1,47 +1,42 @@
 package com.nikhil.biovault
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.nikhil.biovault.ui.theme.BioVaultTheme
+import androidx.compose.runtime.*
+import androidx.fragment.app.FragmentActivity
+import com.nikhil.biovault.feature.auth.AuthScreen
 
-class MainActivity : ComponentActivity() {
+// FragmentActivity is REQUIRED — BiometricPrompt needs it
+class MainActivity : FragmentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+
         setContent {
-            BioVaultTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+            var isAuthenticated by remember { mutableStateOf(false) }
+
+            if (!isAuthenticated) {
+                AuthScreen(
+                    onAuthenticated = { isAuthenticated = true }
+                )
+            } else {
+                // Sprint 3 will plug in here — Vault screen
+                VaultPlaceholder()
             }
         }
     }
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    BioVaultTheme {
-        Greeting("Android")
+private fun VaultPlaceholder() {
+    androidx.compose.material3.Surface(
+        modifier = androidx.compose.ui.Modifier.fillMaxSize()
+    ) {
+        androidx.compose.foundation.layout.Box(
+            contentAlignment = androidx.compose.ui.Alignment.Center
+        ) {
+            androidx.compose.material3.Text("🔓 Vault — Sprint 3 coming next")
+        }
     }
 }
