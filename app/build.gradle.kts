@@ -75,4 +75,7 @@ dependencies {
 
     // Serialization (for storing credential objects as JSON)
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+
+    // for icons
+    implementation("androidx.compose.material:material-icons-extended")
 }
