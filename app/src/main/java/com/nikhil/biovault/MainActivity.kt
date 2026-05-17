@@ -5,6 +5,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.nikhil.biovault.core.generator.GeneratorScreen
 import com.nikhil.biovault.core.model.Credential
 import com.nikhil.biovault.feature.auth.AuthScreen
 import com.nikhil.biovault.feature.vault.AddEditScreen
@@ -18,6 +19,7 @@ sealed class Screen {
     object AddNew : Screen()
     data class Detail(val id: String)           : Screen()
     data class Edit  (val id: String)           : Screen()
+    data class Generator(val returnToAddEdit: Boolean = false) : Screen()
 }
 
 class MainActivity : FragmentActivity() {
@@ -43,6 +45,7 @@ private fun AppNavigation() {
         is Screen.List -> VaultListScreen(
             onAddNew           = { currentScreen = Screen.AddNew },
             onSelectCredential = { currentScreen = Screen.Detail(it.id) },
+            onOpenGenerator     = { currentScreen = Screen.Generator() },
             viewModel          = vaultViewModel
         )
 
@@ -51,7 +54,8 @@ private fun AppNavigation() {
                 vaultViewModel.addCredential(credential)
                 currentScreen = Screen.List
             },
-            onBack = { currentScreen = Screen.List }
+            onBack       = { currentScreen = Screen.List },
+            onGenerate   = { currentScreen = Screen.Generator(returnToAddEdit = true) }
         )
 
         is Screen.Detail -> {
@@ -82,5 +86,19 @@ private fun AppNavigation() {
                 )
             }
         }
+
+        is Screen.Generator -> GeneratorScreen(
+            onBack = {
+                // Go back to wherever launched us
+                currentScreen = if (screen.returnToAddEdit) Screen.AddNew else Screen.List
+            },
+            onUsePassword = if (screen.returnToAddEdit) {
+                { password ->
+                    // Sprint 5: pass password back to AddEdit
+                    // For now, just go back
+                    currentScreen = Screen.AddNew
+                }
+            } else null
+        )
     }
 }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -25,7 +26,8 @@ import com.nikhil.biovault.ui.components.PasswordStrengthBar
 fun AddEditScreen(
     existingCredential: Credential? = null,
     onSave: (Credential) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onGenerate: (() -> Unit)? = null
 ) {
     var site        by remember { mutableStateOf(existingCredential?.site        ?: "") }
     var username    by remember { mutableStateOf(existingCredential?.username    ?: "") }
@@ -99,13 +101,24 @@ fun AddEditScreen(
                     VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 trailingIcon  = {
-                    IconButton(onClick = { showPassword = !showPassword }) {
-                        Icon(
-                            imageVector = if (showPassword)
-                                Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (showPassword) "Hide" else "Show",
-                            tint = Color(0xFF8B949E)
-                        )
+                    Row {
+                        if (onGenerate != null) {
+                            IconButton(onClick = onGenerate) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = "Generate password",
+                                    tint = Color(0xFF58A6FF)
+                                )
+                            }
+                        }
+                        IconButton(onClick = { showPassword = !showPassword }) {
+                            Icon(
+                                imageVector = if (showPassword)
+                                    Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = if (showPassword) "Hide" else "Show",
+                                tint = Color(0xFF8B949E)
+                            )
+                        }
                     }
                 },
                 colors        = vaultTextFieldColors()

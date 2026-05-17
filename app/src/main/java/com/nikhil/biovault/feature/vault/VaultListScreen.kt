@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,7 +30,8 @@ import com.nikhil.biovault.core.model.Credential
 fun VaultListScreen(
     onAddNew: () -> Unit,
     onSelectCredential: (Credential) -> Unit,
-    viewModel: VaultViewModel = viewModel()
+    viewModel: VaultViewModel = viewModel(),
+    onOpenGenerator: () -> Unit
 ) {
     val searchQuery  = viewModel.searchQuery.value
     val filtered     = viewModel.filteredCredentials
@@ -43,7 +45,16 @@ fun VaultListScreen(
                 title = {
                     Text("Vault", fontWeight = FontWeight.Bold, color = Color.White)
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = surface)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = surface),
+                actions = {
+                    IconButton(onClick = onOpenGenerator) {
+                        Icon(
+                            imageVector = Icons.Default.Password,  // or use a key emoji Text
+                            contentDescription = "Password Generator",
+                            tint = Color(0xFF58A6FF)
+                        )
+                    }
+                }
             )
         },
         floatingActionButton = {
