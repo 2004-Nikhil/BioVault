@@ -35,6 +35,10 @@ fun AuthScreen(
     // Trigger check on first composition
     LaunchedEffect(Unit) {
         viewModel.checkInitialState()
+
+        if (viewModel.isBiometricAvailable() && !viewModel.authState.value.let { it is AuthState.LockedOut }) {
+            viewModel.authenticate(activity)
+        }
     }
 
     // Navigate when authenticated

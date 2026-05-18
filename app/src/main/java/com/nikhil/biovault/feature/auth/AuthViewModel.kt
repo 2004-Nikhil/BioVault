@@ -26,6 +26,8 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private var countdownJob: Job? = null
 
     fun checkInitialState() {
+        _authState.value = AuthState.Idle
+
         if (lockoutManager.isLockedOut()) {
             startLockoutCountdown()
         }
@@ -81,5 +83,10 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     override fun onCleared() {
         super.onCleared()
         countdownJob?.cancel()
+    }
+
+    // Add this to allow manual resetting
+    fun resetState() {
+        _authState.value = AuthState.Idle
     }
 }

@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nikhil.biovault.core.model.Credential
+import com.nikhil.biovault.core.security.ClipboardClearManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,11 +30,16 @@ fun CredentialDetailScreen(
     credential: Credential,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    clipboardClearManager: ClipboardClearManager
 ) {
     val clipboard     = LocalClipboardManager.current
     var showPassword  by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+
+    // Clipboard countdown state
+    val secondsRemaining by clipboardClearManager.secondsRemaining.collectAsState()
+    val isClearPending   by clipboardClearManager.isClearPending.collectAsState()
 
     val darkBg  = Color(0xFF0D1117)
     val surface = Color(0xFF161B22)
@@ -72,12 +78,24 @@ fun CredentialDetailScreen(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            DetailField(label = "Site",     value = credential.site)
-            DetailField(label = "Username", value = credential.username) {
-                clipboard.setText(AnnotatedString(credential.username))
-            }
 
-            // Password row with reveal + copy
+            // ── Site ───────────────────────────────────────────────────
+            DetailField(
+                label = "Site",
+                value = credential.site
+            )
+
+            // ── Username with copy ─────────────────────────────────────
+            DetailField(
+                label  = "Username",
+                value  = credential.username,
+                onCopy = {
+                    clipboard.setText(AnnotatedString(credential.username))
+                    clipboardClearManager.scheduleClear("username")
+                }
+            )
+
+            // ── Password row ───────────────────────────────────────────
             DetailCard {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -85,49 +103,86 @@ fun CredentialDetailScreen(
                     verticalAlignment     = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Password", fontSize = 11.sp, color = Color(0xFF8B949E))
+                        Text(text     = "Password", fontSize = 11.sp,
+                            color    = Color(0xFF8B949E))
                         Spacer(Modifier.height(2.dp))
                         Text(
-                            text       = if (showPassword) credential.password else "•".repeat(credential.password.length.coerceAtMost(20)),
+                            text = if (showPassword)
+                                credential.password
+                            else
+                                "•".repeat(credential.password.length.coerceAtMost(20)),
                             color      = Color.White,
                             fontFamily = FontFamily.Monospace,
                             fontSize   = 15.sp
                         )
                     }
                     Row {
+                        // Reveal / hide toggle
                         IconButton(onClick = { showPassword = !showPassword }) {
                             Icon(
-                                imageVector = if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = null,
+                                imageVector = if (showPassword)
+                                    Icons.Default.VisibilityOff
+                                else
+                                    Icons.Default.Visibility,
+                                contentDescription = if (showPassword) "Hide" else "Show",
                                 tint = Color(0xFF8B949E)
                             )
                         }
-                        IconButton(onClick = { clipboard.setText(AnnotatedString(credential.password)) }) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = "Copy",
-                                tint = Color(0xFF58A6FF))
+                        // Copy with auto-clear scheduled
+                        IconButton(onClick = {
+                            clipboard.setText(AnnotatedString(credential.password))
+                            clipboardClearManager.scheduleClear("password")
+                        }) {
+                            Icon(
+                                Icons.Default.ContentCopy,
+                                contentDescription = "Copy password",
+                                tint = Color(0xFF58A6FF)
+                            )
                         }
                     }
                 }
             }
 
-            if (credential.totpSecret.isNotBlank()) {
-                DetailField(label = "TOTP Secret", value = credential.totpSecret) {
-                    clipboard.setText(AnnotatedString(credential.totpSecret))
-                }
+            // ── Clipboard countdown badge ──────────────────────────────
+            if (isClearPending) {
+                Text(
+                    text     = "⏱  Clipboard clears in ${secondsRemaining}s",
+                    fontSize = 12.sp,
+                    color    = Color(0xFFE3B341),
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
             }
 
+            // ── TOTP secret ────────────────────────────────────────────
+            if (credential.totpSecret.isNotBlank()) {
+                DetailField(
+                    label  = "TOTP Secret",
+                    value  = credential.totpSecret,
+                    onCopy = {
+                        clipboard.setText(AnnotatedString(credential.totpSecret))
+                        clipboardClearManager.scheduleClear("TOTP secret")
+                    }
+                )
+            }
+
+            // ── Notes ──────────────────────────────────────────────────
             if (credential.notes.isNotBlank()) {
-                DetailField(label = "Notes", value = credential.notes)
+                DetailField(
+                    label = "Notes",
+                    value = credential.notes
+                )
             }
         }
     }
 
-    // ── Delete confirmation dialog ──────────────────────────────────────
+    // ── Delete confirmation dialog ─────────────────────────────────────
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("Delete credential?") },
-            text  = { Text("This will permanently remove ${credential.site} from your vault.") },
+            text  = {
+                Text("This will permanently remove ${credential.site} from your vault.")
+            },
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteDialog = false
@@ -141,7 +196,7 @@ fun CredentialDetailScreen(
                     Text("Cancel")
                 }
             },
-            containerColor = Color(0xFF161B22),
+            containerColor    = Color(0xFF161B22),
             titleContentColor = Color.White,
             textContentColor  = Color(0xFF8B949E)
         )
@@ -157,14 +212,26 @@ private fun DetailField(label: String, value: String, onCopy: (() -> Unit)? = nu
             verticalAlignment     = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(label, fontSize = 11.sp, color = Color(0xFF8B949E))
+                Text(
+                    text     = label,
+                    fontSize = 11.sp,
+                    color    = Color(0xFF8B949E)
+                )
                 Spacer(Modifier.height(2.dp))
-                Text(value, color = Color.White, fontSize = 15.sp)
+                Text(
+                    text     = value,
+                    color    = Color.White,
+                    fontSize = 15.sp
+                )
             }
             if (onCopy != null) {
                 IconButton(onClick = onCopy) {
-                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy",
-                        tint = Color(0xFF58A6FF), modifier = Modifier.size(18.dp))
+                    Icon(
+                        imageVector        = Icons.Default.ContentCopy,
+                        contentDescription = "Copy",
+                        tint               = Color(0xFF58A6FF),
+                        modifier           = Modifier.size(18.dp)
+                    )
                 }
             }
         }
