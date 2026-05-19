@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.nikhil.biovault.core.crypto.KeyStatus
+import com.nikhil.biovault.core.crypto.KeystoreManager
 import com.nikhil.biovault.core.data.EncryptedPrefsStore
 import com.nikhil.biovault.core.security.AuthResult
 import com.nikhil.biovault.core.security.BiometricAuthManager
@@ -31,11 +33,44 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         if (lockoutManager.isLockedOut()) {
             startLockoutCountdown()
         }
+        else {
+            checkKeyIntegrity()
+        }
     }
+
+    /**
+     * Check keystore key health on every cold start / resume from lock.
+     * If invalidated, show the dedicated recovery screen immediately
+     * before the user even taps the unlock button.
+     */
+    private fun checkKeyIntegrity() {
+        when (KeystoreManager.checkKeyStatus()) {
+            KeyStatus.Invalidated -> _authState.value = AuthState.KeyInvalidated
+            KeyStatus.Missing     -> {
+                // First launch — generate key, proceed normally
+                runCatching { KeystoreManager.getOrCreateSecretKey() }
+                _authState.value = AuthState.Idle
+            }
+            KeyStatus.Valid       -> _authState.value = AuthState.Idle
+        }
+    }
+
+    // ── Authentication ──────────────────────────────────────────────────
 
     fun authenticate(activity: FragmentActivity) {
         if (lockoutManager.isLockedOut()) {
             startLockoutCountdown()
+            return
+        }
+
+        // Guard — re-check key before attempting auth
+        if (KeystoreManager.checkKeyStatus() == KeyStatus.Invalidated) {
+            _authState.value = AuthState.KeyInvalidated
+            return
+        }
+
+        if (!biometricMgr.isBiometricAvailable()) {
+            _authState.value = AuthState.BiometricUnavailable
             return
         }
 
@@ -55,15 +90,42 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                         _authState.value = AuthState.Failed
                     }
                 }
-                is AuthResult.Cancelled -> {
-                    _authState.value = AuthState.Idle
-                }
-                is AuthResult.Error -> {
-                    _authState.value = AuthState.Error(result.message)
+                is AuthResult.Cancelled -> _authState.value = AuthState.Idle
+                is AuthResult.Error     -> {
+                    // Check if the error is actually key invalidation
+                    if (KeystoreManager.checkKeyStatus() == KeyStatus.Invalidated) {
+                        _authState.value = AuthState.KeyInvalidated
+                    } else {
+                        _authState.value = AuthState.Error(result.message)
+                    }
                 }
             }
         }
     }
+
+    // ── Key invalidation recovery ───────────────────────────────────────
+
+    /**
+     * User has acknowledged that their biometric changed.
+     * Delete the old key and generate a fresh one.
+     * The vault data itself is safe — it's encrypted by EncryptedSharedPreferences
+     * which uses a separate MasterKey not bound to biometric enrollment.
+     */
+    fun acknowledgeKeyInvalidation() {
+        KeystoreManager.deleteKey()
+        runCatching { KeystoreManager.getOrCreateSecretKey() }
+        lockoutManager.clearFailedAttempts() // reset lockout on re-enroll
+        _authState.value = AuthState.ReadyForReEnrollment
+    }
+
+    /**
+     * After key reset, user is ready to authenticate fresh.
+     */
+    fun proceedAfterReEnrollment() {
+        _authState.value = AuthState.Idle
+    }
+
+    // ── Lockout countdown ───────────────────────────────────────────────
 
     private fun startLockoutCountdown() {
         countdownJob?.cancel()
@@ -75,7 +137,6 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             _authState.value = AuthState.Idle
         }
     }
-
     fun isBiometricAvailable(): Boolean = biometricMgr.isBiometricAvailable()
 
     fun remainingAttempts(): Int = lockoutManager.remainingAttemptsBeforeLockout()
