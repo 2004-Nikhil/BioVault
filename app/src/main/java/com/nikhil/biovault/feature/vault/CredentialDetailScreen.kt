@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nikhil.biovault.core.model.Credential
 import com.nikhil.biovault.core.security.ClipboardClearManager
+import com.nikhil.biovault.ui.components.TotpCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -155,6 +156,10 @@ fun CredentialDetailScreen(
 
             // ── TOTP secret ────────────────────────────────────────────
             if (credential.totpSecret.isNotBlank()) {
+                // Live TOTP code with countdown ring
+                TotpCard(secret = credential.totpSecret)
+
+                // Raw secret below for backup/export purposes
                 DetailField(
                     label  = "TOTP Secret",
                     value  = credential.totpSecret,

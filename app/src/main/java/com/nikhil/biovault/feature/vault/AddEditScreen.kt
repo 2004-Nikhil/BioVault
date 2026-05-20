@@ -20,6 +20,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.nikhil.biovault.core.model.Credential
 import com.nikhil.biovault.ui.components.PasswordStrengthBar
+import com.nikhil.biovault.core.totp.Base32
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,6 +40,7 @@ fun AddEditScreen(
     var siteError     by remember { mutableStateOf(false) }
     var usernameError by remember { mutableStateOf(false) }
     var passwordError by remember { mutableStateOf(false) }
+    var totpError by remember { mutableStateOf(false) }
 
     val isEditing = existingCredential != null
     val darkBg    = Color(0xFF0D1117)
@@ -131,10 +133,21 @@ fun AddEditScreen(
                 )
             }
 
-            VaultTextField(
+            OutlinedTextField(
                 value         = totpSecret,
-                onValueChange = { totpSecret = it },
-                label         = "TOTP Secret (optional)"
+                onValueChange = {
+                    totpSecret = it
+                    totpError  = it.isNotBlank() && !Base32.isValid(it)
+                },
+                label          = { Text("TOTP Secret (optional)") },
+                isError        = totpError,
+                supportingText = if (totpError) {
+                    { Text("Invalid Base32 secret — check for typos") }
+                } else null,
+                placeholder    = { Text("e.g. JBSWY3DPEHPK3PXP", color = Color(0xFF484F58)) },
+                modifier       = Modifier.fillMaxWidth(),
+                singleLine     = true,
+                colors         = vaultTextFieldColors()
             )
 
             VaultTextField(
@@ -152,7 +165,8 @@ fun AddEditScreen(
                     siteError     = site.isBlank()
                     usernameError = username.isBlank()
                     passwordError = password.isBlank()
-                    if (siteError || usernameError || passwordError) return@Button
+                    totpError     = totpSecret.isNotBlank() && !Base32.isValid(totpSecret)
+                    if (siteError || usernameError || passwordError || totpError) return@Button
 
                     val credential = existingCredential?.copy(
                         site       = site.trim(),
