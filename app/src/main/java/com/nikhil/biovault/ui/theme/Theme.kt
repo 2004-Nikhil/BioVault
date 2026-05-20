@@ -10,11 +10,25 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material3.*
+import androidx.compose.ui.graphics.Color
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary          = Color(0xFF58A6FF),
+    onPrimary        = Color(0xFF0D1117),
+    primaryContainer = Color(0xFF1F3A5F),
+    secondary        = Color(0xFF3FB950),
+    onSecondary      = Color(0xFF0D1117),
+    tertiary         = Color(0xFFE3B341),
+    background       = Color(0xFF0D1117),
+    onBackground     = Color(0xFFE6EDF3),
+    surface          = Color(0xFF161B22),
+    onSurface        = Color(0xFFE6EDF3),
+    surfaceVariant   = Color(0xFF21262D),
+    onSurfaceVariant = Color(0xFF8B949E),
+    outline          = Color(0xFF30363D),
+    error            = Color(0xFFE53935),
+    onError          = Color.White
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -34,25 +48,10 @@ private val LightColorScheme = lightColorScheme(
 )
 
 @Composable
-fun BioVaultTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
-    content: @Composable () -> Unit
-) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-
+fun BioVaultTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
+        colorScheme = DarkColorScheme,
+        typography  = Typography(),
+        content     = content
     )
 }

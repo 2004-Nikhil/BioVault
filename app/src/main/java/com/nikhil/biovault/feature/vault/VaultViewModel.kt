@@ -52,6 +52,11 @@ class VaultViewModel(application: Application) : AndroidViewModel(application) {
         _searchQuery.value = query
     }
 
+    fun reload() {
+        credentials.clear()
+        credentials.addAll(repository.getAll())
+    }
+
     val filteredCredentials: List<Credential>
         get() {
             val q = _searchQuery.value.trim().lowercase()

@@ -26,6 +26,8 @@ import com.nikhil.biovault.core.totp.Base32
 @Composable
 fun AddEditScreen(
     existingCredential: Credential? = null,
+    injectedPassword: String? = null,       // ← new
+    onPasswordConsumed: () -> Unit = {},    // ← new
     onSave: (Credential) -> Unit,
     onBack: () -> Unit,
     onGenerate: (() -> Unit)? = null
@@ -46,7 +48,12 @@ fun AddEditScreen(
     val darkBg    = Color(0xFF0D1117)
     val surface   = Color(0xFF161B22)
     val accent    = Color(0xFF58A6FF)
-
+    LaunchedEffect(injectedPassword) {
+        if (injectedPassword != null) {
+            password = injectedPassword
+            onPasswordConsumed()
+        }
+    }
     Scaffold(
         containerColor = darkBg,
         topBar = {

@@ -15,18 +15,36 @@ import androidx.core.view.WindowCompat
  * if this composable leaves composition.
  */
 @Composable
-fun ScreenCaptureBlock() {
+fun ScreenCaptureBlock(enabled: Boolean) {
     val view = LocalView.current
 
-    DisposableEffect(view) {
-        val window = (view.context as? android.app.Activity)?.window
+    DisposableEffect(enabled, view) {
+        val context = view.context
+        // Helper to find Activity
+        var currentContext = context
 
-        // Set FLAG_SECURE — blocks screenshots + screen recording
-        window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        val activity = (view.context as? android.app.Activity) ?: findActivity(view.context)
+        val window = activity?.window
+
+        if (enabled) {
+            window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        } else {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
+
 
         onDispose {
             // Clear the flag when composable leaves composition
             window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         }
     }
+}
+
+private fun findActivity(context: android.content.Context): android.app.Activity? {
+    var currentContext = context
+    while (currentContext is android.content.ContextWrapper) {
+        if (currentContext is android.app.Activity) return currentContext
+        currentContext = currentContext.baseContext
+    }
+    return null
 }
